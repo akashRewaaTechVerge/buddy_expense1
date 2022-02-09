@@ -8,9 +8,12 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Exception\BadResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Auth;
+// use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Redirect;
+use Laravel\Passport\AuthCode;
+use Illuminate\Support\Facades\Hash;
+use Auth;
 
 class UserController extends Controller {
 
@@ -18,25 +21,17 @@ class UserController extends Controller {
 
     public function register( Request $request ) {
         // ------------[ 'For Validation' ]------------
-        $validator = validator::make( $request->all(), [
+        $validator = Validator::make( $request->all(), [
             'first_name' => 'required|min:3',
             'last_name' => 'required|min:3',
             'email' => 'required|email|unique:users',
             'phone' => 'required|min:10',
-            'password' => 'required|min:8'
-        ], [
-            'first_name.required'=>'Name Is Required.',
-            'last_name.required'=>'last_Name Is Required.',
-            'email.required'=>'email Is Required.',
-            'phone.required'=>'phone Is Required.',
-            'password.required'=>'password Is Required.'
+            'password' => 'required|min:6'
         ] );
         if ( $validator->fails() ) {
-            return response()->json( [
-                'message' => 'Required Field',
-            ] );
-            // return redirect()->back()->withErrors( $validator )->withInput();
+            return response( [ 'errors'=>$validator->errors()->all() ], 422 );
         } else {
+
             // -----------------[ ' Create new user ' ] ---------------------
             try {
                 $user = new User();
@@ -65,5 +60,38 @@ class UserController extends Controller {
             }
         }
     }
+
+    // ---------------- [ ' Login ' ] -----------------
+
+    public function login( Request $request ) {
+
+        $validator = Validator::make( $request->all(), [
+            'phone' => 'required|min:10',
+            'password' => 'required|min:6',
+        ] );
+        if ( $validator->fails() ) {
+            return response( [ 'errors'=>$validator->errors()->all() ], 422 );
+        } else {
+            try {
+                $user = User::where( 'phone', $request->phone )->first();
+                if ( !$user || !Hash::check( $request->password, $user->password ) ) {
+                    return response()->json( [
+                        'status' => '400',
+                        'message' => 'login Faild'
+                    ] );
+                } else {
+                    return response()->json( [
+                        'status' => '200',
+                        'message' => 'User Login Success'
+                    ] );
+                }
+            } catch ( \Exception $e ) {
+                return response()->json( [
+                    'message' => $e->getMessage()
+                ] );
+            }
+        }
+    }
+
 }
 
