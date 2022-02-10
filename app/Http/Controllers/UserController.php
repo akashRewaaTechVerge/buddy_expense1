@@ -21,19 +21,18 @@ class UserController extends Controller {
 
     public function register( Request $request ) {
         // ------------[ 'For Validation' ]------------
-        $validator = Validator::make( $request->all(), [
-            'first_name' => 'required|min:3',
-            'last_name' => 'required|min:3',
-            'email' => 'required|email|unique:users',
-            'phone' => 'required|min:10',
-            'password' => 'required|min:6'
-        ] );
-        if ( $validator->fails() ) {
-            return response( [ 'errors'=>$validator->errors()->all() ], 422 );
-        } else {
-
-            // -----------------[ ' Create new user ' ] ---------------------
-            try {
+        try {
+            $validator = Validator::make( $request->all(), [
+                'first_name' => 'required|min:3',
+                'last_name' => 'required|min:3',
+                'email' => 'required|email|unique:users',
+                'phone' => 'required|min:10',
+                'password' => 'required|min:6'
+            ] );
+            if ( $validator->fails() ) {
+                return response( [ 'errors'=>$validator->errors()->all() ], 422 );
+            } else {
+                // -----------------[ ' Create new user ' ] ---------------------
                 $user = new User();
                 $user->first_name = $request->first_name;
                 $user->last_name = $request->last_name;
@@ -43,28 +42,36 @@ class UserController extends Controller {
                 $token = $user->token = Str::random( 60 );
                 if ( $user->save() ) {
                     return response()->json( [
-                        'status' => '200',
+                        'status' => 200,
                         'message' => 'User Register Success',
-                        'token' => $token
+                        'data' => [
+                            'token' => $token
+                        ]
                     ] );
                 } else {
                     return response()->json( [
-                        'status' => '400',
-                        'message' => 'User Register Faild'
+                        'status' => 400,
+                        'message' => 'User Register Faild',
+                        'data' => [
+                            'token' => []
+                        ]
                     ] );
                 }
-            } catch ( \Exception $e ) {
-                return response()->json( [
-                    'message' => $e->getMessage()
-                ] );
             }
+
+        } catch ( \Exception $e ) {
+            return response()->json( [
+                'status' => 422,
+                'message' => $e->getMessage()
+            ] );
         }
+
     }
 
     // ---------------- [ ' Login ' ] -----------------
 
     public function login( Request $request ) {
-
+        // ----------- [ ' laravel Validation ' ] ----------------
         $validator = Validator::make( $request->all(), [
             'phone' => 'required|min:10',
             'password' => 'required|min:6',
@@ -76,12 +83,12 @@ class UserController extends Controller {
                 $user = User::where( 'phone', $request->phone )->first();
                 if ( !$user || !Hash::check( $request->password, $user->password ) ) {
                     return response()->json( [
-                        'status' => '400',
+                        'status' => 400,
                         'message' => 'login Faild'
                     ] );
                 } else {
                     return response()->json( [
-                        'status' => '200',
+                        'status' => 200,
                         'message' => 'User Login Success'
                     ] );
                 }
@@ -89,9 +96,9 @@ class UserController extends Controller {
                 return response()->json( [
                     'message' => $e->getMessage()
                 ] );
+
             }
         }
     }
-
 }
 
